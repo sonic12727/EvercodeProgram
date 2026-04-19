@@ -1,0 +1,12 @@
+{
+  "name": "career-program-project",
+  "version": "1.0.0",
+  "description": "Учебный проект карьерной программы на Node.js",
+  "main": "scheduler.js",
+  "scripts": {
+    "start": "node scheduler.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

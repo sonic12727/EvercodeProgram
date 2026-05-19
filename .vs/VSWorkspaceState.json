@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\src",
+    "\\src\\config",
+    "\\src\\config\\__tests__",
+    "\\src\\errors",
+    "\\src\\errors\\__tests__",
+    "\\src\\services",
+    "\\src\\services\\__tests__",
+    "\\src\\utils",
+    "\\src\\utils\\__tests__"
+  ],
+  "SelectedNode": "\\src\\utils\\__tests__\\scheduler.test.js",
+  "PreviewInSolutionExplorer": false
+}

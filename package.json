@@ -1,0 +1,14 @@
+{
+  "name": "career-program-project",
+  "version": "1.0.0",
+  "description": "Учебный проект карьерной программы на Node.js",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

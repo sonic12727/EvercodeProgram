@@ -9,8 +9,13 @@ describe('Scheduler', () =>
     beforeEach(() =>
     {
         jest.useFakeTimers();
-        mockLogger = jest.fn();
-        mockConfig = { appName: 'TestApp',settings: { schedulerIntervalMs: 5000 } };
+        mockLogger = {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+        };
+        mockConfig = { appName: 'TestApp', settings: { schedulerIntervalMs: 5000 } };
         scheduler = new Scheduler(mockConfig, mockLogger);
     });
 
@@ -30,22 +35,17 @@ describe('Scheduler', () =>
     test('start() создаёт интервал и логирует запуск', () =>
     {
         scheduler.start();
-
-        // Проверяем, что setInterval был вызван 1 раз
         expect(setInterval).toHaveBeenCalledTimes(1);
-        // Проверяем, что интервал равен значению из конфига
-        expect(setInterval).toHaveBeenCalledWith(expect.any(Function),mockConfig.settings.schedulerIntervalMs);
-        // Проверяем логирование
-        expect(mockLogger).toHaveBeenCalledWith(expect.stringContaining('Scheduler started'));
+        expect(setInterval).toHaveBeenCalledWith(expect.any(Function), mockConfig.settings.schedulerIntervalMs);
+        expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Scheduler started'));
     });
 
     test('stop() очищает интервал и логирует остановку', () =>
     {
         scheduler.start();
         scheduler.stop();
-
         expect(clearInterval).toHaveBeenCalledTimes(1);
-        expect(mockLogger).toHaveBeenCalledWith('Scheduler stopped');
+        expect(mockLogger.info).toHaveBeenCalledWith('Scheduler stopped');
         expect(scheduler.intervalId).toBeNull();
     });
 });

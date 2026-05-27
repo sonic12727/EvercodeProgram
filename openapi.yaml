@@ -1,0 +1,161 @@
+openapi: 3.0.0
+info:
+  title: Career Program Scheduler API
+  version: 1.0.0
+  description: API для управления валютами и получения курсов с Binance
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+paths:
+  /status:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Returns "ok"
+  /currencies:
+    get:
+      summary: Get all currencies
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of currencies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Currency'
+    post:
+      summary: Create new currency
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, ticker]
+              properties:
+                name:
+                  type: string
+                ticker:
+                  type: string
+      responses:
+        '201':
+          description: Currency created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Currency'
+  /currencies/{id}:
+    get:
+      summary: Get currency by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Currency found
+        '404':
+          description: Not found
+    put:
+      summary: Update currency
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, ticker]
+              properties:
+                name:
+                  type: string
+                ticker:
+                  type: string
+      responses:
+        '200':
+          description: Updated
+        '404':
+          description: Not found
+    delete:
+      summary: Delete currency
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+  /price:
+    get:
+      summary: Get cryptocurrency prices from Binance
+      parameters:
+        - name: currency
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Ticker symbol (e.g., BTC, ETH)
+      responses:
+        '200':
+          description: Prices fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currency:
+                    $ref: '#/components/schemas/Currency'
+                  prices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        pair:
+                          type: string
+                        price:
+                          type: string
+        '400':
+          description: Missing currency parameter
+        '404':
+          description: Currency not found in local DB or no trading pairs
+        '502':
+          description: Binance API error
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+  schemas:
+    Currency:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        ticker:
+          type: string

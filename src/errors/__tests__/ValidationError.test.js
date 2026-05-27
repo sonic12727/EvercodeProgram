@@ -1,4 +1,4 @@
-const { ValidationError } = require('../../../src/errors');
+const { ValidationError } = require('../index');
 
 describe('ValidationError', () =>
 {

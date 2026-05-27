@@ -4,13 +4,14 @@
     "\\src",
     "\\src\\config",
     "\\src\\config\\__tests__",
-    "\\src\\errors",
     "\\src\\errors\\__tests__",
     "\\src\\services",
     "\\src\\services\\__tests__",
     "\\src\\utils",
-    "\\src\\utils\\__tests__"
+    "\\src\\utils\\__tests__",
+    "\\src\\web",
+    "\\src\\web\\_tests_"
   ],
-  "SelectedNode": "\\src\\utils\\__tests__\\scheduler.test.js",
+  "SelectedNode": "\\src\\services\\scheduler.js",
   "PreviewInSolutionExplorer": false
 }

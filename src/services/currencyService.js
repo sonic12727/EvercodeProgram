@@ -1,61 +1,39 @@
-class CurrencyService 
+class CurrencyService
 {
-  constructor() 
-  {
-    this.currencies = []; // { id, name, ticker }
-    this.nextId = 1;
-  }
-
-  getAll() 
-  {
-    return this.currencies;
-  }
-
-  getById(id) 
-  {
-    return this.currencies.find(c => c.id === id);
-  }
-
-  getByTicker(ticker) 
-  {
-    return this.currencies.find(c => c.ticker.toLowerCase() === ticker.toLowerCase());
-  }
-
-  create(name, ticker) 
-  {
-    const newCurrency = 
+    constructor(currencyRepository)
     {
-      id: this.nextId++,
-      name: name.trim(),
-      ticker: ticker.trim().toUpperCase()
-    };
-    this.currencies.push(newCurrency);
+        this.currencyRepository = currencyRepository;
+    }
 
-    return newCurrency;
-  }
-
-  update(id, name, ticker) 
-  {
-    const index = this.currencies.findIndex(c => c.id === id);
-
-    if (index === -1) return null;
-    this.currencies[index] = 
+    getAll()
     {
-      ...this.currencies[index],
-      name: name.trim(),
-      ticker: ticker.trim().toUpperCase()
-    };
-    return this.currencies[index];
-  }
+        return this.currencyRepository.getAll();
+    }
 
-  delete(id) 
-  {
-    const index = this.currencies.findIndex(c => c.id === id);
+    getById(id)
+    {
+        return this.currencyRepository.getById(id);
+    }
 
-    if (index === -1) return false;
-    this.currencies.splice(index, 1);
-    return true;
-  }
+    getByTicker(ticker)
+    {
+        return this.currencyRepository.getByTicker(ticker);
+    }
+
+    create(name, ticker)
+    {
+        return this.currencyRepository.create(name, ticker);
+    }
+
+    update(id, name, ticker)
+    {
+        return this.currencyRepository.update(id, name, ticker);
+    }
+
+    delete(id)
+    {
+        return this.currencyRepository.delete(id);
+    }
 }
 
 module.exports = CurrencyService;

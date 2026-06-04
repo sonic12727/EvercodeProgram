@@ -16,7 +16,9 @@ describe('GET /status', () =>
 
     beforeEach(() =>
     {
-        app = createWebServer(mockLogger);
+        const CurrencyService = require('../src/services/currencyService');
+        const currencyService = new CurrencyService();
+        app = createWebServer(mockLogger, currencyService);
     });
 
     test('возвращает статус 200 и тело "ok"', async () =>

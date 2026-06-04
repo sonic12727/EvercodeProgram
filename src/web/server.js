@@ -1,23 +1,22 @@
 const axios = require('axios');
 const express = require('express');
 const authMiddleware = require('./authMiddleware');
-const CurrencyService = require('../services/currencyService');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
 const swaggerDocument = YAML.load(path.join(__dirname, '../../openapi.yaml'));
 
-function createWebServer(logger)
+// Передаем currencyService извне, чтобы все роуты и тесты работали со сквозными данными
+function createWebServer(logger, currencyService)
 {
     const app = express();
-    const currencyService = new CurrencyService();
 
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
     // Middleware для парсинга JSON
     app.use(express.json());
 
-    // Логирование запросов (опционально)
+    // Логирование запросов
     app.use((req, res, next) =>
     {
         logger.debug(`${req.method} ${req.url}`);
@@ -31,6 +30,7 @@ function createWebServer(logger)
         res.status(200).send('ok');
     });
 
+    // Публичный маршрут /price
     app.get('/price', async (req, res) =>
     {
         const { currency } = req.query;
@@ -40,46 +40,44 @@ function createWebServer(logger)
             return res.status(400).json({ error: 'currency query parameter is required' });
         }
 
-        // Проверяем, есть ли такая валюта в локальном хранилище
-        const existingCurrency = currencyService.getByTicker(currency);
+        // Проверяем наличие валюты в локальной базе через внедренный сервис
+        const localCurrency = currencyService.getByTicker(currency);
 
-        if (!existingCurrency)
+        if (!localCurrency)
         {
-            return res.status(404).json({ error: `Currency ${currency} not found in local storage` });
+            return res.status(404).json({ error: `Currency with ticker ${currency} not found in local database` });
         }
 
         try
         {
-            // Запрос к Binance Public API
-            const response = await axios.get('https://api.binance.com/api/v3/ticker/price', { timeout: 5000, });
+            const response = await axios.get('https://api.binance.com/api/v3/ticker/price', { timeout: 5000 });
             const allPrices = response.data;
-            const filtered = allPrices.filter(p => p.symbol.includes(currency.toUpperCase()));
+            const searchTicker = currency.toUpperCase();
+            const filtered = allPrices.filter(p => p.symbol.startsWith(searchTicker) || p.symbol.endsWith(searchTicker));
 
-            if (filtered.length === 0) {
-                return res.status(404).json({ error: `No trading pairs found for ${currency}` });
-            }
-
-            // Форматируем ответ
             res.json({
-                currency: existingCurrency,
-                prices: filtered.map(p => ({ pair: p.symbol, price: p.price }))
+                currency: localCurrency,
+                prices: filtered.map(p => ({
+                    pair: p.symbol,
+                    price: p.price
+                }))
             });
         }
         catch (error)
         {
-            logger.error('Binance API error', { error: error.message });
-            res.status(502).json({ error: 'Failed to fetch prices from Binance' });
+            logger.error('Binance API integration error', { error: error.message, stack: error.stack });
+            res.status(502).json({ error: 'Failed to fetch prices from Binance API' });
         }
     });
 
+    // Маршруты CRUD для валют (Защищены authMiddleware)
     const currencyRouter = express.Router();
-    currencyRouter.use(authMiddleware); // все маршруты ниже защищены
+    currencyRouter.use(authMiddleware);
 
     // GET /currencies
     currencyRouter.get('/', (req, res) =>
     {
-        const currencies = currencyService.getAll();
-        res.json(currencies);
+        res.json(currencyService.getAll());
     });
 
     // GET /currencies/:id
@@ -87,6 +85,7 @@ function createWebServer(logger)
     {
         const id = parseInt(req.params.id);
         const currency = currencyService.getById(id);
+
         if (!currency)
         {
             return res.status(404).json({ error: 'Currency not found' });
@@ -98,6 +97,7 @@ function createWebServer(logger)
     currencyRouter.post('/', (req, res) =>
     {
         const { name, ticker } = req.body;
+
         if (!name || !ticker)
         {
             return res.status(400).json({ error: 'name and ticker are required' });
@@ -111,11 +111,13 @@ function createWebServer(logger)
     {
         const id = parseInt(req.params.id);
         const { name, ticker } = req.body;
+
         if (!name || !ticker)
         {
             return res.status(400).json({ error: 'name and ticker are required' });
         }
         const updated = currencyService.update(id, name, ticker);
+
         if (!updated)
         {
             return res.status(404).json({ error: 'Currency not found' });
@@ -128,6 +130,7 @@ function createWebServer(logger)
     {
         const id = parseInt(req.params.id);
         const deleted = currencyService.delete(id);
+
         if (!deleted)
         {
             return res.status(404).json({ error: 'Currency not found' });
@@ -137,7 +140,7 @@ function createWebServer(logger)
 
     app.use('/currencies', currencyRouter);
 
-    // 404
+    // 404 handler
     app.use((req, res) =>
     {
         res.status(404).json({ error: 'Not found' });
@@ -146,13 +149,4 @@ function createWebServer(logger)
     return app;
 }
 
-function startWebServer(app, port, logger)
-{
-    const server = app.listen(port, () =>
-    {
-        logger.info(`Web server listening on port ${port}`);
-    });
-    return server;
-}
-
-module.exports = { createWebServer, startWebServer };
+module.exports = { createWebServer };

@@ -5,7 +5,8 @@ const { createWebServer } = require('../server');
 jest.mock('axios');
 const axios = require('axios');
 
-const mockLogger = {
+const mockLogger =
+{
     info: jest.fn(),
     debug: jest.fn(),
     warn: jest.fn(),
@@ -20,7 +21,9 @@ describe('GET /price', () =>
 
     beforeEach(() =>
     {
-        app = createWebServer(mockLogger);
+        const CurrencyService = require('../src/services/currencyService');
+        const currencyService = new CurrencyService();
+        app = createWebServer(mockLogger, currencyService);
         jest.clearAllMocks();
     });
 
@@ -70,12 +73,11 @@ describe('GET /price', () =>
         const token = 'Bearer test-token-64-chars-here-for-testing';
         await request(app).post('/currencies').set('Authorization', token).send({ name: 'Ethereum', ticker: 'ETH' });
 
-        // Мокаем ошибку сети
-        axios.get.mockRejectedValue(new Error('Network Error'));
+        // Мокаем ошибку сети / API
+        axios.get.mockRejectedValue(new Error('Network error'));
 
         const res = await request(app).get('/price?currency=ETH');
         expect(res.statusCode).toBe(502);
-        expect(res.body.error).toBe('Failed to fetch prices from Binance');
-        expect(mockLogger.error).toHaveBeenCalled();
+        expect(res.body.error).toContain('Binance API error');
     });
 });

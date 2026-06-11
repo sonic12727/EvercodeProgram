@@ -4,6 +4,7 @@ describe('Scheduler', () =>
 {
     let mockLogger;
     let mockConfig;
+    let mockCurrencyService;
     let scheduler;
 
     beforeEach(() =>
@@ -15,8 +16,15 @@ describe('Scheduler', () =>
             warn: jest.fn(),
             debug: jest.fn(),
         };
-        mockConfig = { appName: 'TestApp', settings: { schedulerIntervalMs: 5000 } };
-        scheduler = new Scheduler(mockConfig, mockLogger);
+        mockConfig = {
+            appName: 'TestApp',
+            settings: { schedulerIntervalMs: 5000 }
+        };
+        mockCurrencyService = {
+            getAll: jest.fn().mockReturnValue([]),
+            updatePrices: jest.fn(),
+        };
+        scheduler = new Scheduler(mockConfig, mockLogger, mockCurrencyService);
     });
 
     afterEach(() =>
@@ -29,6 +37,7 @@ describe('Scheduler', () =>
     {
         expect(scheduler.config).toBe(mockConfig);
         expect(scheduler.logger).toBe(mockLogger);
+        expect(scheduler.currencyService).toBe(mockCurrencyService);
         expect(scheduler.intervalId).toBeNull();
     });
 
@@ -47,5 +56,13 @@ describe('Scheduler', () =>
         expect(clearInterval).toHaveBeenCalledTimes(1);
         expect(mockLogger.info).toHaveBeenCalledWith('Scheduler stopped');
         expect(scheduler.intervalId).toBeNull();
+    });
+
+    test('executeTask не выполняется, если нет валют в БД', async () =>
+    {
+        mockCurrencyService.getAll.mockReturnValue([]);
+        await scheduler.executeTask();
+        expect(mockCurrencyService.updatePrices).not.toHaveBeenCalled();
+        expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('No currencies found'));
     });
 });

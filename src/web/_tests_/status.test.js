@@ -1,7 +1,9 @@
-const request = require('supertest');
-const { createWebServer } = require('../../src/web/server');
+ï»¿const request = require('supertest');
+const { createWebServer } = require('../server');
+const initDatabase = require('../../config/db');
+const CurrencyRepository = require('../../repositories/currencyRepository');
+const CurrencyService = require('../../services/currencyService');
 
-// Ìîêàåì ëîããåð, ÷òîáû íå çàñîðÿòü âûâîä òåñòîâ
 const mockLogger =
 {
     info: jest.fn(),
@@ -13,28 +15,36 @@ const mockLogger =
 describe('GET /status', () =>
 {
     let app;
+    let db;
 
     beforeEach(() =>
     {
-        const CurrencyService = require('../src/services/currencyService');
-        const currencyService = new CurrencyService();
+        // inâ€‘memory Ð‘Ð” Ð´Ð»Ñ Ñ‚ÐµÑÑ‚Ð°
+        db = initDatabase('test');
+        const repo = new CurrencyRepository(db);
+        const currencyService = new CurrencyService(repo);
         app = createWebServer(mockLogger, currencyService);
     });
 
-    test('âîçâðàùàåò ñòàòóñ 200 è òåëî "ok"', async () =>
+    afterEach(() =>
+    {
+        if (db && db.open) db.close();
+    });
+
+    test('Ð²Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ ÑÑ‚Ð°Ñ‚ÑƒÑ 200 Ð¸ Ñ‚ÐµÐ»Ð¾ "ok"', async () =>
     {
         const response = await request(app).get('/status');
         expect(response.statusCode).toBe(200);
         expect(response.text).toBe('ok');
     });
 
-    test('ëîãèðóåò âûçîâ ÷åðåç ëîããåð', async () =>
+    test('Ð»Ð¾Ð³Ð¸Ñ€ÑƒÐµÑ‚ Ð²Ñ‹Ð·Ð¾Ð² Ñ‡ÐµÑ€ÐµÐ· Ð»Ð¾Ð³Ð³ÐµÑ€', async () =>
     {
         await request(app).get('/status');
         expect(mockLogger.info).toHaveBeenCalledWith('Health check');
     });
 
-    test('âîçâðàùàåò 404 íà íåñóùåñòâóþùèé ìàðøðóò', async () =>
+    test('Ð²Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ 404 Ð½Ð° Ð½ÐµÑÑƒÑ‰ÐµÑÑ‚Ð²ÑƒÑŽÑ‰Ð¸Ð¹ Ð¼Ð°Ñ€ÑˆÑ€ÑƒÑ‚', async () =>
     {
         const response = await request(app).get('/not-exist');
         expect(response.statusCode).toBe(404);

@@ -1,9 +1,8 @@
 const request = require('supertest');
 const { createWebServer } = require('../server');
-
-// Мокаем axios до импорта сервера
-jest.mock('axios');
-const axios = require('axios');
+const initDatabase = require('../../config/db');
+const CurrencyRepository = require('../../repositories/currencyRepository');
+const CurrencyService = require('../../services/currencyService');
 
 const mockLogger =
 {
@@ -18,13 +17,20 @@ process.env.API_TOKEN = 'test-token-64-chars-here-for-testing';
 describe('GET /price', () =>
 {
     let app;
+    let db;
+    let currencyService;
 
     beforeEach(() =>
     {
-        const CurrencyService = require('../src/services/currencyService');
-        const currencyService = new CurrencyService();
+        db = initDatabase('test');
+        const repo = new CurrencyRepository(db);
+        currencyService = new CurrencyService(repo);
         app = createWebServer(mockLogger, currencyService);
-        jest.clearAllMocks();
+    });
+
+    afterEach(() =>
+    {
+        if (db && db.open) db.close();
     });
 
     test('возвращает 400 если отсутствует параметр currency', async () =>
@@ -44,40 +50,37 @@ describe('GET /price', () =>
     test('возвращает цены для существующей валюты', async () =>
     {
         const token = 'Bearer test-token-64-chars-here-for-testing';
-        await request(app).post('/currencies').set('Authorization', token).send({ name: 'Bitcoin', ticker: 'BTC' });
+        await request(app)
+            .post('/currencies')
+            .set('Authorization', token)
+            .send({ name: 'Bitcoin', ticker: 'BTC' });
 
-        const mockBinanceResponse =
-        {
-            data: [
-                { symbol: 'BTCUSDT', price: '50000.00' },
-                { symbol: 'ETHBTC', price: '0.07' },
-                { symbol: 'BNBBTC', price: '0.005' }
-            ]
-        };
-        axios.get.mockResolvedValue(mockBinanceResponse);
+        // 2. Ручное заполнение кэша цен
+        const mockPrices = [
+            { pair: 'BTCUSDT', price: '50000.00' },
+            { pair: 'ETHBTC', price: '0.07' },
+            { pair: 'BNBBTC', price: '0.005' }
+        ];
+        currencyService.updatePrices('BTC', mockPrices);
 
+        // 3. Запрос /price
         const res = await request(app).get('/price?currency=BTC');
         expect(res.statusCode).toBe(200);
         expect(res.body.currency.ticker).toBe('BTC');
         expect(res.body.prices).toHaveLength(3);
         expect(res.body.prices[0]).toHaveProperty('pair', 'BTCUSDT');
-        expect(axios.get).toHaveBeenCalledWith(
-            'https://api.binance.com/api/v3/ticker/price',
-            expect.objectContaining({ timeout: 5000 })
-        );
+        expect(res.body.prices[0]).toHaveProperty('price', '50000.00');
     });
 
-    test('обрабатывает ошибку Binance API', async () =>
+    test('обрабатывает отсутствие цен в кэше', async () =>
     {
-        // Создаём валюту
         const token = 'Bearer test-token-64-chars-here-for-testing';
-        await request(app).post('/currencies').set('Authorization', token).send({ name: 'Ethereum', ticker: 'ETH' });
-
-        // Мокаем ошибку сети / API
-        axios.get.mockRejectedValue(new Error('Network error'));
-
+        await request(app)
+            .post('/currencies')
+            .set('Authorization', token)
+            .send({ name: 'Ethereum', ticker: 'ETH' });
         const res = await request(app).get('/price?currency=ETH');
-        expect(res.statusCode).toBe(502);
-        expect(res.body.error).toContain('Binance API error');
+        expect(res.statusCode).toBe(200);
+        expect(res.body.prices).toEqual([]);
     });
 });

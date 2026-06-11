@@ -3,8 +3,7 @@
     "",
     "\\src",
     "\\src\\config",
-    "\\src\\config\\__tests__",
-    "\\src\\errors\\__tests__",
+    "\\src\\repositories",
     "\\src\\services",
     "\\src\\services\\__tests__",
     "\\src\\utils",
@@ -12,6 +11,6 @@
     "\\src\\web",
     "\\src\\web\\_tests_"
   ],
-  "SelectedNode": "\\src\\services\\scheduler.js",
+  "SelectedNode": "\\src\\web\\_tests_\\currencies.test.js",
   "PreviewInSolutionExplorer": false
 }

@@ -40,34 +40,21 @@ function createWebServer(logger, currencyService)
             return res.status(400).json({ error: 'currency query parameter is required' });
         }
 
-        // Проверяем наличие валюты в локальной базе через внедренный сервис
-        const localCurrency = currencyService.getByTicker(currency);
+        // Проверяем, есть ли валюта в нашей локальной базе данных
+        const crypto = currencyService.getByTicker(currency);
 
-        if (!localCurrency)
+        if (!crypto)
         {
-            return res.status(404).json({ error: `Currency with ticker ${currency} not found in local database` });
+            return res.status(404).json({ error: `Currency ${currency} not found in local DB` });
         }
 
-        try
-        {
-            const response = await axios.get('https://api.binance.com/api/v3/ticker/price', { timeout: 5000 });
-            const allPrices = response.data;
-            const searchTicker = currency.toUpperCase();
-            const filtered = allPrices.filter(p => p.symbol.startsWith(searchTicker) || p.symbol.endsWith(searchTicker));
+        const cachedPrices = currencyService.getPrices(currency);
 
-            res.json({
-                currency: localCurrency,
-                prices: filtered.map(p => ({
-                    pair: p.symbol,
-                    price: p.price
-                }))
-            });
-        }
-        catch (error)
-        {
-            logger.error('Binance API integration error', { error: error.message, stack: error.stack });
-            res.status(502).json({ error: 'Failed to fetch prices from Binance API' });
-        }
+        // Отдаем ответ строго в ожидаемой структуре
+        res.json({
+            currency: crypto,
+            prices: cachedPrices
+        });
     });
 
     // Маршруты CRUD для валют (Защищены authMiddleware)
